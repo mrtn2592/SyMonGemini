@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>SyMon by NotSimon - Compact V9</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* THEME CLAIR */
+            --bg-color: #f4f6f8;
+            --panel-color: #ffffff;
+            --text-main: #333333;
+            --text-secondary: #666666;
+            
+            /* BRANDING */
+            --navy-blue: #001f3f;
+            --blue-accent: #0074D9;
+            
+            /* ETATS */
+            --green: #2ECC40; 
+            --orange: #FF851B;
+            --red: #FF4136;
+            --gray: #d0d0d0;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px; /* Réduit de 20px */
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* --- HEADER COMPACT (MODIFIÉ) --- */
+        header {
+            margin-bottom: 10px;       /* Réduit de 15px */
+            padding: 8px 15px;         /* Réduit drastiquement */
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--navy-blue);
+            min-height: 40px;          /* Hauteur forcée minimale */
+        }
+
+        h1 { 
+            margin: 0; 
+            font-size: 1.4em;          /* Réduit de 1.8em */
+            color: var(--navy-blue); 
+            font-weight: 700; 
+        }
+
+        .header-sub-text-main { font-size: 0.8em; font-weight: bold; color: var(--navy-blue); }
+        .header-sub-text-sub { font-size: 0.7em; }
+
+        .container { display: flex; flex: 1; gap: 15px; overflow: hidden; } /* Gap réduit */
+
+        /* --- SIDEBAR & FILTERS --- */
+        .sidebar-container {
+            width: 300px; /* Légèrement réduit */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 300px;
+        }
+
+        .filter-panel {
+            background-color: var(--panel-color);
+            padding: 10px; /* Réduit */
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label { font-size: 0.7em; font-weight: bold; color: var(--navy-blue); margin-bottom: 2px; text-transform: uppercase; }
+        
+        .filter-select, .filter-date {
+            width: 100%; padding: 6px; border: 1px solid #ddd;
+            border-radius: 4px; background-color: #f9f9f9; color: var(--text-main);
+            font-family: 'Roboto', sans-serif; box-sizing: border-box; font-size: 0.9em;
+        }
+
+        .flight-list {
+            flex: 1;
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            overflow-y: auto;
+            padding: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .flight-item {
+            padding: 8px 10px; /* Réduit */
+            background-color: #f9f9f9;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #eee;
+            border-left: 4px solid transparent;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .flight-item:hover { background-color: #f0f4f8; border-left-color: var(--blue-accent); }
+        .flight-item.active { background-color: #e3f2fd; border-left-color: var(--navy-blue); }
+
+        .flight-logo {
+            width: 32px; height: 32px; /* Réduit */
+            object-fit: contain; background: #fff;
+            border-radius: 4px; padding: 2px; border: 1px solid #eee;
+        }
+
+        .flight-details-col { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+        .flight-header { display: flex; justify-content: space-between; align-items: center; }
+        .flight-id { font-weight: bold; font-size: 0.95em; color: var(--navy-blue); }
+        .flight-type { font-size: 0.7em; color: var(--text-secondary); background: #eee; padding: 1px 4px; border-radius: 3px; }
+        .flight-route { font-size: 0.75em; color: var(--text-secondary); margin-top: 1px;}
+
+        .badge { font-size: 0.6em; padding: 1px 5px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
+        .badge-live { background-color: rgba(255, 65, 54, 0.1); color: var(--red); border: 1px solid var(--red); animation: pulse 2s infinite; }
+        .badge-landed { background-color: rgba(46, 204, 64, 0.1); color: var(--green); border: 1px solid var(--green); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+
+        /* --- MAIN VIEW --- */
+        .main-view { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+        .flight-info-header {
+            display: flex; justify-content: space-between; background: var(--panel-color);
+            padding: 10px 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-size: 0.9em; align-items: center; min-height: 50px;
+        }
+
+        .sat-info {
+            font-family: monospace; background: #f0f4f8; padding: 3px 8px;
+            border-radius: 4px; color: var(--navy-blue); font-weight: bold; border: 1px solid #dcebf7; font-size: 0.9em;
+        }
+
+        /* --- STATUS PANEL --- */
+        .status-panel {
+            display: flex; justify-content: space-around; background-color: var(--panel-color);
+            padding: 12px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); align-items: center;
+        }
+        .status-card { text-align: center; }
+        .status-indicator {
+            width: 20px; height: 20px; border-radius: 50%; background-color: var(--gray);
+            margin: 0 auto 5px auto; box-shadow: inset 0 2px 5px rgba(0,0,0,0.2);
+            transition: background-color 0.3s; border: 2px solid #fff;
+        }
+        .status-label { font-weight: 600; font-size: 0.8em; color: var(--navy-blue); }
+        .status-text { font-size: 0.7em; margin-top: 2px; color: var(--text-secondary); }
+
+        /* LAYOUT VISUALS */
+        .visual-container { display: flex; flex-direction: column; flex: 1; gap: 10px; min-height: 0; }
+        #map { flex: 5; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eee; z-index: 1; }
+        .chart-container { flex: 4; background-color: var(--panel-color); border-radius: 8px; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); min-height: 150px; position: relative; }
+
+        .working { background-color: var(--green); }
+        .instable { background-color: var(--orange); }
+        .out-of-order { background-color: var(--red); }
+        .unknown { background-color: var(--gray); }
+
+        .plane-marker-wrapper { transition: all 1s linear; }
+        .plane-body { font-size: 28px; line-height: 28px; text-align: center; filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.3)); }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>SyMon by NotSimon</h1>
+        <div style="text-align: right; color: var(--text-secondary);">
+            <div class="header-sub-text-main">Global Fleet Connectivity</div>
+            <div class="header-sub-text-sub">Live Tracking System</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="sidebar-container">
+            <div class="filter-panel">
+                <div>
+                    <div class="filter-label">Compagnie</div>
+                    <select id="filterAirline" class="filter-select" onchange="applyFilters()">
+                        <option value="all">Toutes</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="filter-label">Type d'avion</div>
+                    <select id="filterType" class="filter-select" onchange="applyFilters()">
+                        <option value="all">Tous</option>
+                    </select>
+                </div>
+                <div>
+                    <div class="filter-label">Date du Vol</div>
+                    <input type="date" id="filterDate" class="filter-date" onchange="applyFilters()">
+                </div>
+            </div>
+
+            <div class="flight-list" id="flightList"></div>
+        </div>
+
+        <div class="main-view">
+            <div class="flight-info-header" id="flightDetails">
+                <span>Veuillez sélectionner un vol...</span>
+            </div>
+
+            <div class="status-panel">
+                <div class="status-card">
+                    <div id="led-kpsu" class="status-indicator unknown"></div>
+                    <div class="status-label">KPSU</div>
+                    <div id="text-kpsu" class="status-text">Unknown</div>
+                </div>
+                <div class="status-card">
+                    <div id="led-krfu" class="status-indicator unknown"></div>
+                    <div class="status-label">KRFU</div>
+                    <div id="text-krfu" class="status-text">Unknown</div>
+                </div>
+                <div class="status-card">
+                    <div id="led-antenna" class="status-indicator unknown"></div>
+                    <div class="status-label">Antenna</div>
+                    <div id="text-antenna" class="status-text">Unknown</div>
+                </div>
+                <div class="status-card">
+                    <div id="led-pax" class="status-indicator unknown"></div>
+                    <div class="status-label">PAX Wifi</div>
+                    <div id="text-pax" class="status-text">Unknown</div>
+                </div>
+                <div class="status-card">
+                    <div id="led-crew" class="status-indicator unknown"></div>
+                    <div class="status-label">Crew</div>
+                    <div id="text-crew" class="status-text">Unknown</div>
+                </div>
+            </div>
+
+            <div class="visual-container">
+                <div id="map"></div>
+                <div class="chart-container">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // --- 1. CONFIGURATION ---
+        const STATUS_COLORS = { 'Working': '#2ECC40', 'Instable': '#FF851B', 'Out of order': '#FF4136', 'Unknown': '#d0d0d0' };
+        const STATUS_CLASS = { 'Working': 'working', 'Instable': 'instable', 'Out of order': 'out-of-order', 'Unknown': 'unknown' };
+
+        // --- 2. STATE ---
+        let flightDatabase = {}; 
+        let currentSelectedFlightId = null;
+        let map, flightPathGroup, currentPlaneMarker;
+        let statusChart = null;
+        
+        let availableAirlines = new Set();
+        let availableTypes = new Set();
+
+        // --- 3. INIT MAP ---
+        function initMap() {
+            map = L.map('map').setView([30.0, 10.0], 2);
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; CARTO', subdomains: 'abcd', maxZoom: 19
+            }).addTo(map);
+            flightPathGroup = L.featureGroup().addTo(map);
+        }
+
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const toRad = (deg) => deg * Math.PI / 180;
+            const toDeg = (rad) => rad * 180 / Math.PI;
+            const dLon = toRad(lon2 - lon1);
+            const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+            const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+            let brng = toDeg(Math.atan2(y, x));
+            return (brng + 360) % 360; 
+        }
+
+        // --- 4. LOGIQUE METIER & CALCUL POURCENTAGE ---
+        function getFlightId(reg, flightNum, date) {
+            return `${reg}-${flightNum}-${date}`;
+        }
+
+        // Calcule le % de temps "Working"
+        function calculateAvailability(history, discreteKey) {
+            if (!history || history.length < 2) return "0%";
+            
+            let totalTime = 0;
+            let workingTime = 0;
+
+            for (let i = 0; i < history.length - 1; i++) {
+                const t1 = new Date(history[i].time).getTime();
+                const t2 = new Date(history[i+1].time).getTime();
+                const duration = t2 - t1;
+                
+                // On additionne le temps total
+                totalTime += duration;
+
+                // Si le statut au début du segment est Working, on ajoute au temps working
+                if (history[i].fullStatus[discreteKey] === 'Working') {
+                    workingTime += duration;
+                }
+            }
+
+            if (totalTime === 0) return "0%";
+            const pct = Math.round((workingTime / totalTime) * 100);
+            return pct + "%";
+        }
+
+        function processSNMPQuery(data, isFinal = false, isBackfill = false) {
+            const flightId = getFlightId(data.registration, data.flightNum, data.flightDate);
+
+            if (!flightDatabase[flightId]) {
+                flightDatabase[flightId] = {
+                    info: {
+                        registration: data.registration,
+                        flightNum: data.flightNum,
+                        airlineCode: data.airlineCode || 'XX',
+                        aircraftType: data.aircraftType || 'Unknown Type',
+                        date: data.flightDate,
+                        dep: data.dep,
+                        arr: data.arr
+                    },
+                    state: 'LIVE',
+                    currentSat: { name: 'Searching...', beam: '---' },
+                    status: {
+                        'KPSU status': 'Unknown',
+                        'KRFU status': 'Unknown',
+                        'Antenna status': 'Unknown',
+                        'PAX connectivity': 'Unknown',
+                        'Crew connectivity': 'Unknown'
+                    },
+                    history: []
+                };
+                
+                updateFiltersOptions(flightDatabase[flightId].info);
+                if(!isBackfill) applyFilters(); 
+            }
+
+            if (flightDatabase[flightId].state === 'LANDED' && !isFinal) return;
+            if (isFinal) {
+                flightDatabase[flightId].state = 'LANDED';
+                applyFilters();
+            }
+
+            if (!isBackfill) {
+                flightDatabase[flightId].status[data.discreteName] = data.discreteValue;
+                if(data.satName) flightDatabase[flightId].currentSat.name = data.satName;
+                if(data.beamId) flightDatabase[flightId].currentSat.beam = data.beamId;
+            } else {
+                flightDatabase[flightId].status[data.discreteName] = data.discreteValue;
+            }
+
+            const fullStatusSnapshot = data.fullStatusSnapshot ? data.fullStatusSnapshot : { ...flightDatabase[flightId].status };
+
+            flightDatabase[flightId].history.push({
+                time: data.timestamp,
+                lat: data.gps.lat,
+                lon: data.gps.lon,
+                paxStatusForMap: fullStatusSnapshot['PAX connectivity'],
+                fullStatus: fullStatusSnapshot,
+                satInfo: { 
+                    name: data.satName || flightDatabase[flightId].currentSat.name, 
+                    beam: data.beamId || flightDatabase[flightId].currentSat.beam 
+                }
+            });
+
+            if (flightDatabase[flightId].state === 'LIVE' && flightDatabase[flightId].history.length > 2000) {
+                flightDatabase[flightId].history.shift();
+            }
+
+            if (currentSelectedFlightId === flightId && !isBackfill) updateDashboardUI();
+        }
+
+        // --- GESTION DES FILTRES ---
+        function updateFiltersOptions(info) {
+            const airlineSelect = document.getElementById('filterAirline');
+            const typeSelect = document.getElementById('filterType');
+            
+            if (!availableAirlines.has(info.airlineCode)) {
+                availableAirlines.add(info.airlineCode);
+                const opt = document.createElement('option');
+                opt.value = info.airlineCode; opt.text = info.airlineCode; airlineSelect.appendChild(opt);
+            }
+            if (!availableTypes.has(info.aircraftType)) {
+                availableTypes.add(info.aircraftType);
+                const opt = document.createElement('option');
+                opt.value = info.aircraftType; opt.text = info.aircraftType; typeSelect.appendChild(opt);
+            }
+        }
+
+        function applyFilters() {
+            const filterAirline = document.getElementById('filterAirline').value;
+            const filterType = document.getElementById('filterType').value;
+            const filterDate = document.getElementById('filterDate').value;
+            renderSidebar(filterAirline, filterType, filterDate);
+        }
+
+        function renderSidebar(fAirline = 'all', fType = 'all', fDate = '') {
+            const list = document.getElementById('flightList');
+            list.innerHTML = ''; 
+
+            const flightIds = Object.keys(flightDatabase);
+            const filteredIds = flightIds.filter(id => {
+                const info = flightDatabase[id].info;
+                if (fAirline !== 'all' && info.airlineCode !== fAirline) return false;
+                if (fType !== 'all' && info.aircraftType !== fType) return false;
+                if (fDate !== '' && info.date !== fDate) return false;
+                return true;
+            });
+
+            filteredIds.sort((a, b) => {
+                const stateA = flightDatabase[a].state;
+                const stateB = flightDatabase[b].state;
+                if (stateA === stateB) return 0;
+                return stateA === 'LIVE' ? -1 : 1;
+            });
+
+            filteredIds.forEach(id => {
+                const f = flightDatabase[id];
+                const item = document.createElement('div');
+                item.className = `flight-item ${currentSelectedFlightId === id ? 'active' : ''}`;
+                item.onclick = () => selectFlight(id);
+
+                const badgeClass = f.state === 'LIVE' ? 'badge-live' : 'badge-landed';
+                const badgeText = f.state === 'LIVE' ? 'LIVE' : 'LANDED';
+                const logoUrl = `https://pics.avs.io/200/200/${f.info.airlineCode}.png`;
+
+                item.innerHTML = `
+                    <img src="${logoUrl}" class="flight-logo" alt="${f.info.airlineCode}" onerror="this.src='https://via.placeholder.com/40?text=✈️'">
+                    <div class="flight-details-col">
+                        <div class="flight-header">
+                            <span class="flight-id">${f.info.flightNum}</span>
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="flight-route">${f.info.dep} ➝ ${f.info.arr}</span>
+                            <span class="flight-type">${f.info.aircraftType}</span>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function selectFlight(id) {
+            currentSelectedFlightId = id;
+            applyFilters();
+            flightPathGroup.clearLayers();
+            if (currentPlaneMarker) map.removeLayer(currentPlaneMarker);
+            currentPlaneMarker = null;
+            updateDashboardUI();
+            
+            if (flightDatabase[id].state === 'LANDED') {
+               setTimeout(() => {
+                   if (flightPathGroup.getBounds().isValid()) map.fitBounds(flightPathGroup.getBounds(), {padding: [50, 50]});
+               }, 100);
+            } else {
+                const flight = flightDatabase[id];
+                if(flight.history.length > 0) {
+                    const last = flight.history[flight.history.length-1];
+                    map.setView([last.lat, last.lon], 5);
+                }
+            }
+        }
+
+        function updateDashboardUI() {
+            if (!currentSelectedFlightId) return;
+            const flight = flightDatabase[currentSelectedFlightId];
+            const lastUpdate = flight.history.length > 0 ? new Date(flight.history[flight.history.length-1].time).toLocaleTimeString() : '--:--';
+            const statusHtml = flight.state === 'LIVE' 
+                ? `<span style="color:var(--red); font-weight:bold;">EN VOL</span>` 
+                : `<span style="color:var(--green); font-weight:bold;">ARRIVÉ</span>`;
+            const logoUrl = `https://pics.avs.io/200/200/${flight.info.airlineCode}.png`;
+
+            document.getElementById('flightDetails').innerHTML = `
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <img src="${logoUrl}" style="height:40px; border-radius:4px;" onerror="this.style.display='none'">
+                    <div>
+                        <div style="font-size:1.2em; font-weight:bold; color:var(--navy-blue);">
+                            ${flight.info.flightNum} <span style="font-size:0.6em; background:#eee; padding:2px 6px; border-radius:4px; vertical-align:middle; color:#666">${flight.info.aircraftType}</span>
+                        </div> 
+                        <span style="color:#888; font-size:0.9em;">Reg: ${flight.info.registration} | Date: ${flight.info.date}</span>
+                    </div>
+                </div>
+                <div class="sat-info">📡 ${flight.currentSat.name} / Beam ${flight.currentSat.beam}</div>
+                <div style="text-align:right; font-size:0.85em;">
+                    <div style="font-size:1.1em; font-weight:500;">${flight.info.dep} ➝ ${flight.info.arr}</div>
+                    ${statusHtml} <span style="color:#aaa">(${lastUpdate})</span>
+                </div>
+            `;
+
+            updateLed('kpsu', flight.status['KPSU status']);
+            updateLed('krfu', flight.status['KRFU status']);
+            updateLed('antenna', flight.status['Antenna status']);
+            updateLed('pax', flight.status['PAX connectivity']);
+            updateLed('crew', flight.status['Crew connectivity']);
+
+            drawFlightPath(flight.history, flight.state);
+            drawHistoryChart(flight.history);
+        }
+
+        function updateLed(idSuffix, status) {
+            const led = document.getElementById(`led-${idSuffix}`);
+            const text = document.getElementById(`text-${idSuffix}`);
+            led.className = 'status-indicator'; 
+            led.classList.add(STATUS_CLASS[status] || 'unknown');
+            text.innerText = status;
+        }
+
+        function drawFlightPath(history, state) {
+            if (history.length === 0) return;
+            flightPathGroup.clearLayers();
+
+            for (let i = 1; i < history.length; i++) {
+                const start = history[i-1];
+                const end = history[i];
+                const color = STATUS_COLORS[start.paxStatusForMap] || STATUS_COLORS['Unknown'];
+                L.polyline([[start.lat, start.lon], [end.lat, end.lon]], {
+                    color: color, weight: 4, opacity: 0.8
+                }).addTo(flightPathGroup);
+            }
+
+            const lastPos = history[history.length - 1];
+            if (state === 'LIVE') {
+                let angle = 0;
+                if (history.length > 1) {
+                    const prevPos = history[history.length - 2];
+                    angle = calculateBearing(prevPos.lat, prevPos.lon, lastPos.lat, lastPos.lon);
+                }
+                const planeIcon = L.divIcon({
+                    html: `<div class="plane-body" style="transform: rotate(${angle-45}deg);">✈️</div>`,
+                    className: 'plane-marker-wrapper',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                if (!currentPlaneMarker) {
+                    currentPlaneMarker = L.marker([lastPos.lat, lastPos.lon], {icon: planeIcon}).addTo(map);
+                } else {
+                    currentPlaneMarker.setLatLng([lastPos.lat, lastPos.lon]);
+                    currentPlaneMarker.setIcon(planeIcon);
+                }
+            } else {
+                L.circleMarker([lastPos.lat, lastPos.lon], {
+                    radius: 6, color: '#fff', fillColor: '#2ECC40', fillOpacity: 1, weight: 2
+                }).addTo(flightPathGroup);
+            }
+        }
+
+        function drawHistoryChart(history) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            
+            // Calcul des pourcentages de disponibilité
+            const pctKPSU = calculateAvailability(history, 'KPSU status');
+            const pctKRFU = calculateAvailability(history, 'KRFU status');
+            const pctAntenna = calculateAvailability(history, 'Antenna status');
+            const pctPax = calculateAvailability(history, 'PAX connectivity');
+            const pctCrew = calculateAvailability(history, 'Crew connectivity');
+
+            const labels = history.map(h => new Date(h.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+            const createDataset = (label, key) => {
+                return history.map(h => ({
+                    x: new Date(h.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+                    y: label, 
+                    status: h.fullStatus[key]
+                }));
+            };
+            
+            const dataKPSU = createDataset('KPSU Status', 'KPSU status');
+            const dataKRFU = createDataset('KRFU Status', 'KRFU status');
+            const dataAntenna = createDataset('Antenna Status', 'Antenna status');
+            const dataPax = createDataset('PAX Wifi', 'PAX connectivity');
+            const dataCrew = createDataset('Crew Wifi', 'Crew connectivity');
+
+            if (statusChart) {
+                statusChart.data.labels = labels;
+                statusChart.data.datasets[0].data = dataKPSU;
+                statusChart.data.datasets[1].data = dataKRFU;
+                statusChart.data.datasets[2].data = dataAntenna;
+                statusChart.data.datasets[3].data = dataPax;
+                statusChart.data.datasets[4].data = dataCrew;
+                
+                // Update des labels pourcentages sur l'axe de droite
+                statusChart.options.scales.y2.labels = [pctCrew, pctPax, pctAntenna, pctKRFU, pctKPSU];
+                
+                statusChart.update('none');
+            } else {
+                statusChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'KPSU', data: dataKPSU },
+                            { label: 'KRFU', data: dataKRFU },
+                            { label: 'Antenna', data: dataAntenna },
+                            { label: 'PAX', data: dataPax },
+                            { label: 'Crew', data: dataCrew }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false, animation: false,
+                        interaction: { intersect: false, mode: 'nearest', axis: 'x' },
+                        elements: {
+                            line: { borderWidth: 25, borderJoinStyle: 'round', tension: 0, stepped: true },
+                            point: { radius: 0, hoverRadius: 0 }
+                        },
+                        segment: {
+                            borderColor: ctx => {
+                                if(ctx.p0 && ctx.p0.raw) { return STATUS_COLORS[ctx.p0.raw.status] || STATUS_COLORS['Unknown']; }
+                                return STATUS_COLORS['Unknown'];
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                grid: { display: false }, 
+                                ticks: { 
+                                    color: '#666', maxTicksLimit: 8,
+                                    callback: function(val, index) {
+                                        const label = this.getLabelForValue(val);
+                                        if (index > 0 && history[index] && history[index-1]) {
+                                            const curr = history[index].satInfo;
+                                            const prev = history[index-1].satInfo;
+                                            if (curr.name !== prev.name || curr.beam !== prev.beam) {
+                                                return [label, `📡 ${curr.name}/${curr.beam}`];
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                } 
+                            },
+                            y: {
+                                type: 'category', 
+                                labels: ['Crew Wifi', 'PAX Wifi', 'Antenna Status', 'KRFU Status', 'KPSU Status'],
+                                offset: true, grid: { color: '#eee' },
+                                ticks: { font: { weight: 'bold' }, color: '#001f3f' }
+                            },
+                            // AXE SECONDAIRE pour les pourcentages
+                            y2: {
+                                position: 'right',
+                                type: 'category',
+                                labels: [pctCrew, pctPax, pctAntenna, pctKRFU, pctKPSU], // Ordre identique à y
+                                offset: true,
+                                grid: { display: false }, 
+                                ticks: { font: { weight: 'bold' }, color: '#333' }
+                            }
+                        },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => `${c.raw.y}: ${c.raw.status}` } } }
+                    }
+                });
+            }
+        }
+
+        // --- 7. MOCK GENERATOR ---
+        const airlines = [
+            { code: 'AF', name: 'Air France' }, { code: 'DL', name: 'Delta' },
+            { code: 'EK', name: 'Emirates' }, { code: 'LH', name: 'Lufthansa' },
+            { code: 'BA', name: 'British Airways' }, { code: 'UA', name: 'United' },
+            { code: 'QR', name: 'Qatar Airways' }, { code: 'JL', name: 'Japan Airlines' }
+        ];
+
+        const aircraftTypes = ['A350-900', 'B777-300ER', 'A320neo', 'B737-800', 'A380-800', 'B787-9'];
+
+        const routes = [
+            { dep: 'CDG', arr: 'JFK', start: {lat: 49.0, lon: 2.5}, end: {lat: 40.6, lon: -73.7}, duration: 8 },
+            { dep: 'LHR', arr: 'DXB', start: {lat: 51.5, lon: -0.4}, end: {lat: 25.2, lon: 55.3}, duration: 7 },
+            { dep: 'HND', arr: 'LAX', start: {lat: 35.5, lon: 139.7}, end: {lat: 33.9, lon: -118.4}, duration: 10 },
+            { dep: 'FRA', arr: 'SIN', start: {lat: 50.0, lon: 8.5}, end: {lat: 1.3, lon: 103.9}, duration: 12 },
+            { dep: 'DXB', arr: 'SYD', start: {lat: 25.2, lon: 55.3}, end: {lat: -33.8, lon: 151.2}, duration: 14 },
+            { dep: 'SFO', arr: 'LHR', start: {lat: 37.6, lon: -122.3}, end: {lat: 51.5, lon: -0.4}, duration: 10 },
+            { dep: 'GRU', arr: 'CDG', start: {lat: -23.4, lon: -46.4}, end: {lat: 49.0, lon: 2.5}, duration: 11 },
+            { dep: 'JFK', arr: 'HND', start: {lat: 40.6, lon: -73.7}, end: {lat: 35.5, lon: 139.7}, duration: 13 }
+        ];
+
+        const satellites = [
+            {name: 'Eutelsat 10B', beams: ['101', '102', '103']},
+            {name: 'Thor 7', beams: ['KA-1', 'KA-2']},
+            {name: 'Inmarsat GX', beams: ['G1', 'G2', 'G3']},
+            {name: 'Viasat-3', beams: ['V1', 'V2']}
+        ];
+
+        const discretesList = ['KPSU status', 'KRFU status', 'Antenna status', 'PAX connectivity', 'Crew connectivity'];
+        const possibleStatuses = ['Working', 'Working', 'Working', 'Instable', 'Out of order'];
+
+        let activeMockFlights = [];
+
+        function getRandomStatus() {
+            let s = {};
+            discretesList.forEach(d => {
+                s[d] = 'Working'; 
+                if (Math.random() > 0.9) { 
+                   s[d] = possibleStatuses[Math.floor(Math.random() * possibleStatuses.length)];
+                }
+            });
+            return s;
+        }
+
+        function createNewMockFlight(isLiveInit = false) {
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const id = Math.floor(Math.random() * 900) + 100;
+            const airline = airlines[Math.floor(Math.random() * airlines.length)];
+            const acType = aircraftTypes[Math.floor(Math.random() * aircraftTypes.length)];
+            const dateStr = new Date().toISOString().split('T')[0];
+
+            let progress = isLiveInit ? (0.1 + Math.random() * 0.7) : 0; 
+            const currentLat = route.start.lat + (route.end.lat - route.start.lat) * progress;
+            const currentLon = route.start.lon + (route.end.lon - route.start.lon) * progress;
+
+            const flightObj = {
+                reg: `${airline.code}-B${Math.floor(Math.random()*999)}`,
+                num: `${airline.code}${id}`,
+                airlineCode: airline.code, aircraftType: acType,
+                date: dateStr, dep: route.dep, arr: route.arr,
+                lat: currentLat, lon: currentLon,
+                destLat: route.end.lat, destLon: route.end.lon,
+                stepLat: (route.end.lat - route.start.lat) / (route.duration * 3600),
+                stepLon: (route.end.lon - route.start.lon) / (route.duration * 3600),
+                satIndex: Math.floor(Math.random() * satellites.length),
+                beamIndex: 0,
+                isLanded: false
+            };
+
+            activeMockFlights.push(flightObj);
+
+            if (isLiveInit) {
+                const flightDurationMs = route.duration * 3600 * 1000;
+                const timeElapsedMs = flightDurationMs * progress;
+                const now = Date.now();
+                const startTime = now - timeElapsedMs;
+                const steps = Math.floor(timeElapsedMs / 600000); 
+
+                for(let i=0; i<steps; i++) {
+                    const t = startTime + (i * 600000);
+                    const p = i / (flightDurationMs / 600000);
+                    const lat = route.start.lat + (route.end.lat - route.start.lat) * p;
+                    const lon = route.start.lon + (route.end.lon - route.start.lon) * p;
+                    const fakeStatus = getRandomStatus();
+                    
+                    const payload = {
+                        timestamp: new Date(t).toISOString(),
+                        registration: flightObj.reg, flightNum: flightObj.num, flightDate: dateStr,
+                        airlineCode: airline.code, aircraftType: acType,
+                        dep: route.dep, arr: route.arr,
+                        gps: { lat: lat, lon: lon },
+                        discreteName: 'KPSU status', discreteValue: fakeStatus['KPSU status'],
+                        fullStatusSnapshot: fakeStatus,
+                        satName: satellites[flightObj.satIndex].name,
+                        beamId: satellites[flightObj.satIndex].beams[0]
+                    };
+                    processSNMPQuery(payload, false, true); 
+                }
+            }
+        }
+
+        function generateLandedFlight(dateOffset = 0) {
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const airline = airlines[Math.floor(Math.random() * airlines.length)];
+            const acType = aircraftTypes[Math.floor(Math.random() * aircraftTypes.length)];
+            const flightId = Math.floor(Math.random() * 900) + 100;
+            const date = new Date(); date.setDate(date.getDate() - dateOffset);
+            const dateStr = date.toISOString().split('T')[0];
+            const baseTime = date.getTime();
+            const steps = 30; 
+            const satIndex = Math.floor(Math.random() * satellites.length);
+            
+            let status = getRandomStatus();
+            let history = [];
+
+            for(let i=0; i<=steps; i++) {
+                const ratio = i / steps;
+                const lat = route.start.lat + (route.end.lat - route.start.lat) * ratio;
+                const lon = route.start.lon + (route.end.lon - route.start.lon) * ratio;
+                
+                if(Math.random() > 0.8) status = getRandomStatus();
+
+                history.push({
+                    time: new Date(baseTime + (i * 900000)).toISOString(),
+                    lat: lat, lon: lon,
+                    paxStatusForMap: status['PAX connectivity'],
+                    fullStatus: { ...status },
+                    satInfo: { name: satellites[satIndex].name, beam: satellites[satIndex].beams[0] }
+                });
+            }
+
+            const reg = `${airline.code}-L${Math.floor(Math.random()*99)}`;
+            const num = `${airline.code}${flightId}`;
+            const id = getFlightId(reg, num, dateStr);
+
+            flightDatabase[id] = {
+                info: { registration: reg, flightNum: num, airlineCode: airline.code, aircraftType: acType, date: dateStr, dep: route.dep, arr: route.arr },
+                state: 'LANDED',
+                currentSat: { name: 'Done', beam: '-' },
+                status: status,
+                history: history
+            };
+            updateFiltersOptions(flightDatabase[id].info);
+        }
+
+        function generateMockSNMP() {
+            activeMockFlights.forEach((flt, index) => {
+                if (flt.isLanded) return;
+
+                const dLat = flt.destLat - flt.lat;
+                const dLon = flt.destLon - flt.lon;
+                const distSq = dLat*dLat + dLon*dLon; 
+
+                if (distSq < 0.001) { 
+                    flt.isLanded = true;
+                    const s = getRandomStatus();
+                    processSNMPQuery({
+                        timestamp: new Date().toISOString(),
+                        registration: flt.reg, flightNum: flt.num, flightDate: flt.date,
+                        airlineCode: flt.airlineCode, aircraftType: flt.aircraftType,
+                        dep: flt.dep, arr: flt.arr,
+                        gps: { lat: flt.destLat, lon: flt.destLon },
+                        discreteName: 'PAX connectivity', discreteValue: 'Working',
+                        fullStatusSnapshot: s,
+                        satName: satellites[flt.satIndex].name, beamId: satellites[flt.satIndex].beams[flt.beamIndex]
+                    }, true);
+                    
+                    activeMockFlights.splice(index, 1);
+                    createNewMockFlight(false); 
+                    return;
+                }
+
+                const speedFactor = 20; 
+                flt.lat += flt.stepLat * speedFactor;
+                flt.lon += flt.stepLon * speedFactor;
+
+                if (Math.random() > 0.99) { 
+                   if (Math.random() > 0.5) flt.beamIndex = (flt.beamIndex + 1) % satellites[flt.satIndex].beams.length;
+                   else { flt.satIndex = (flt.satIndex + 1) % satellites.length; flt.beamIndex = 0; }
+                }
+                
+                const randomDiscrete = discretesList[Math.floor(Math.random() * discretesList.length)];
+                const randomStatus = possibleStatuses[Math.floor(Math.random() * possibleStatuses.length)];
+                const currentSatObj = satellites[flt.satIndex];
+
+                processSNMPQuery({
+                    timestamp: new Date().toISOString(),
+                    registration: flt.reg, flightNum: flt.num, flightDate: flt.date,
+                    airlineCode: flt.airlineCode, aircraftType: flt.aircraftType,
+                    dep: flt.dep, arr: flt.arr,
+                    gps: { lat: flt.lat, lon: flt.lon },
+                    discreteName: randomDiscrete,
+                    discreteValue: randomStatus,
+                    satName: currentSatObj.name,
+                    beamId: currentSatObj.beams[flt.beamIndex]
+                });
+            });
+        }
+
+        window.onload = () => {
+            initMap();
+            document.getElementById('filterDate').valueAsDate = new Date();
+            
+            for(let i=0; i<10; i++) generateLandedFlight(0);
+            for(let i=0; i<12; i++) createNewMockFlight(true); 
+
+            applyFilters();
+            setInterval(generateMockSNMP, 1000);
+            generateMockSNMP();
+        };
+
+    </script>
+</body>
+</html>
