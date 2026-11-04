@@ -1,0 +1,2083 @@
+```html
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyMon by NotSimon — Surveillance Satcom</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* THEME CLAIR */
+            --bg-color: #f0f4f8;
+            --panel-color: #ffffff;
+            --text-main: #1e293b;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            
+            /* BRANDING */
+            --navy-blue: #001f3f;
+            --blue-accent: #0074D9;
+            --blue-soft: #e0f2fe;
+            
+            /* ETATS */
+            --green: #10b981; 
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --gray: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- HEADER & NAVIGATION TABS --- */
+        header {
+            margin-bottom: 12px;
+            padding: 8px 18px;
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 5px solid var(--navy-blue);
+            min-height: 52px;
+            gap: 16px;
+        }
+
+        .brand-block {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        h1 { 
+            margin: 0; 
+            font-size: 1.35em;
+            color: var(--navy-blue); 
+            font-weight: 700; 
+            letter-spacing: -0.3px;
+        }
+
+        /* Onglets de navigation */
+        .nav-tabs {
+            display: flex;
+            background-color: #f1f5f9;
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            gap: 4px;
+        }
+
+        .nav-tab {
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            font-size: 0.88em;
+            padding: 7px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--navy-blue);
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .nav-tab.active {
+            background-color: var(--navy-blue);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 1px 3px rgba(0, 31, 63, 0.2);
+        }
+
+        .tab-counter {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: var(--red);
+            padding: 1px 7px;
+            border-radius: 10px;
+            font-size: 0.8em;
+            font-weight: 700;
+        }
+
+        .nav-tab.active .tab-counter {
+            background-color: var(--red);
+            color: #ffffff;
+        }
+
+        .header-sub-text-main { font-size: 0.82em; font-weight: 700; color: var(--navy-blue); }
+        .header-sub-text-sub { font-size: 0.72em; color: var(--text-secondary); }
+
+        .container { display: flex; flex: 1; gap: 14px; overflow: hidden; }
+
+        /* --- SIDEBAR & FILTERS --- */
+        .sidebar-container {
+            width: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 290px;
+        }
+
+        .filter-panel {
+            background-color: var(--panel-color);
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .filter-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-row > div {
+            flex: 1;
+        }
+
+        .filter-label {
+            font-size: 0.68em;
+            font-weight: 700;
+            color: var(--navy-blue);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        
+        .filter-select, .filter-date {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e1;
+            border-radius: 5px;
+            background-color: #f8fafc;
+            color: var(--text-main);
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.85em;
+            outline: none;
+        }
+
+        .filter-select:focus, .filter-date:focus {
+            border-color: var(--blue-accent);
+            background-color: #fff;
+        }
+
+        .flight-list {
+            flex: 1;
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            overflow-y: auto;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border: 1px solid var(--border-color);
+        }
+
+        .flight-item {
+            padding: 8px 10px;
+            background-color: #f8fafc;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid transparent;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .flight-item:hover {
+            background-color: #f1f5f9;
+            border-left-color: var(--blue-accent);
+        }
+
+        .flight-item.active {
+            background-color: #e0f2fe;
+            border-color: #bae6fd;
+            border-left-color: var(--navy-blue);
+        }
+
+        .flight-logo-wrapper {
+            width: 34px;
+            height: 34px;
+            border-radius: 5px;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            flex-shrink: 0;
+            font-weight: 700;
+            font-size: 0.75em;
+            color: var(--navy-blue);
+        }
+
+        .flight-logo {
+            width: 30px;
+            height: 30px;
+            object-fit: contain;
+        }
+
+        .flight-details-col { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+        .flight-header { display: flex; justify-content: space-between; align-items: center; }
+        .flight-id { font-weight: 700; font-size: 0.92em; color: var(--navy-blue); }
+        .flight-type { font-size: 0.68em; color: var(--text-secondary); background: #e2e8f0; padding: 1px 5px; border-radius: 3px; font-weight: 500; }
+        .flight-route { font-size: 0.75em; color: var(--text-secondary); }
+        .flight-sat-mini { font-size: 0.68em; color: #0369a1; font-family: 'JetBrains Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        .badge { font-size: 0.6em; padding: 2px 6px; border-radius: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+        .badge-live { background-color: rgba(239, 68, 68, 0.12); color: var(--red); border: 1px solid rgba(239, 68, 68, 0.4); animation: pulse 2s infinite; }
+        .badge-landed { background-color: rgba(16, 185, 129, 0.12); color: var(--green); border: 1px solid rgba(16, 185, 129, 0.4); }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.55; } 100% { opacity: 1; } }
+
+        /* --- MAIN VIEW --- */
+        .main-view { flex: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+
+        /* En-tête Vue Vol Unique */
+        .flight-info-header {
+            display: flex;
+            justify-content: space-between;
+            background: var(--panel-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            font-size: 0.9em;
+            align-items: center;
+            min-height: 58px;
+            border: 1px solid var(--border-color);
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .sat-badge-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            padding: 6px 14px;
+            border-radius: 6px;
+            border: 1px solid #bae6fd;
+        }
+
+        .sat-badge-label {
+            font-size: 0.68em;
+            text-transform: uppercase;
+            color: #0369a1;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .sat-badge-value {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--navy-blue);
+            font-weight: 600;
+            font-size: 0.95em;
+        }
+
+        /* En-tête Vue Flotte Globale */
+        .fleet-info-header {
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--panel-color);
+            padding: 10px 18px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            min-height: 58px;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .fleet-kpi-group {
+            display: flex;
+            gap: 18px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .fleet-kpi {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            font-size: 0.82em;
+        }
+
+        .kpi-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .fleet-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-action {
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            color: var(--navy-blue);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-action:hover {
+            background-color: #e2e8f0;
+        }
+
+        .btn-action.active {
+            background-color: var(--navy-blue);
+            color: #fff;
+            border-color: var(--navy-blue);
+        }
+
+        /* --- STATUS PANEL (LEDs) --- */
+        .status-panel {
+            display: flex;
+            justify-content: space-around;
+            background-color: var(--panel-color);
+            padding: 10px 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            align-items: center;
+            border: 1px solid var(--border-color);
+        }
+
+        .status-card {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 12px;
+            border-radius: 6px;
+            background: #f8fafc;
+            border: 1px solid #f1f5f9;
+            min-width: 135px;
+        }
+
+        .status-indicator {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background-color: var(--gray);
+            transition: all 0.3s;
+            flex-shrink: 0;
+        }
+
+        .status-label { font-weight: 700; font-size: 0.78em; color: var(--navy-blue); }
+        .status-text { font-size: 0.72em; color: var(--text-secondary); font-weight: 500; }
+
+        /* --- LAYOUT VISUALS (MAP & CHART) --- */
+        .visual-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 10px;
+            min-height: 0;
+        }
+
+        .map-wrapper {
+            flex: 5;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border-color);
+            display: flex;
+            min-height: 220px;
+        }
+
+        #map {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            background-color: #dbeafe;
+            z-index: 1;
+        }
+
+        /* Sélecteur de style de carte intégré */
+        .map-style-switcher {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 500;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(4px);
+            padding: 4px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            gap: 4px;
+        }
+
+        .map-style-btn {
+            border: none;
+            background: transparent;
+            padding: 4px 9px;
+            font-size: 0.72em;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .map-style-btn.active {
+            background: var(--navy-blue);
+            color: #fff;
+        }
+
+        /* Légende sur la carte */
+        .map-legend {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            z-index: 500;
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(4px);
+            padding: 6px 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: 1px solid #cbd5e1;
+            display: flex;
+            gap: 12px;
+            font-size: 0.72em;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-line {
+            width: 14px;
+            height: 3px;
+            border-radius: 2px;
+        }
+
+        /* --- TIMELINE CHART CONTAINER --- */
+        .chart-container {
+            flex: 4.2;
+            background-color: var(--panel-color);
+            border-radius: 8px;
+            padding: 8px 14px 10px 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            min-height: 215px;
+            position: relative;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .chart-title {
+            font-size: 0.76em;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--navy-blue);
+            letter-spacing: 0.4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-legend-inline {
+            display: flex;
+            gap: 14px;
+            font-size: 0.72em;
+            color: var(--text-secondary);
+            align-items: center;
+        }
+
+        .chart-canvas-wrap {
+            flex: 1;
+            position: relative;
+            min-height: 0;
+        }
+
+        /* États couleurs LEDs */
+        .working { background-color: var(--green); box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2); }
+        .instable { background-color: var(--orange); box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2); }
+        .out-of-order { background-color: var(--red); box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2); }
+        .unknown { background-color: var(--gray); }
+
+        /* Marqueurs Avion SVG sur la carte */
+        .plane-marker-wrapper {
+            background: transparent;
+            border: none;
+        }
+
+        .plane-marker-container {
+            position: relative;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .plane-svg {
+            width: 26px;
+            height: 26px;
+            filter: drop-shadow(0 2px 3px rgba(0,0,0,0.35));
+            transition: transform 0.3s ease;
+        }
+
+        .plane-callsign-tag {
+            position: absolute;
+            top: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 31, 63, 0.88);
+            color: #fff;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 1px 4px;
+            border-radius: 3px;
+            white-space: nowrap;
+            pointer-events: none;
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.2px;
+        }
+
+        /* Popup Carte Flotte */
+        .fleet-popup {
+            font-family: 'Roboto', sans-serif;
+            min-width: 220px;
+        }
+
+        .fleet-popup-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-bottom: 6px;
+        }
+
+        .fleet-popup-sat {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .fleet-popup-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4px 8px;
+            font-size: 0.78em;
+            margin-bottom: 8px;
+        }
+
+        .fleet-popup-btn {
+            width: 100%;
+            background: var(--navy-blue);
+            color: #fff;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-weight: 600;
+            font-size: 0.8em;
+            cursor: pointer;
+        }
+
+        .fleet-popup-btn:hover {
+            background: var(--blue-accent);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="brand-block">
+            <h1>SyMon by NotSimon</h1>
+            <div class="nav-tabs">
+                <button id="tabSingle" class="nav-tab active" onclick="switchViewMode('single')">
+                    <span>🔍 Détail par Vol & Timeline</span>
+                </button>
+                <button id="tabFleet" class="nav-tab" onclick="switchViewMode('fleet')">
+                    <span>🌍 Carte Flotte en Vol</span>
+                    <span id="liveCountBadge" class="tab-counter">0</span>
+                </button>
+            </div>
+        </div>
+        <div style="text-align: right;">
+            <div class="header-sub-text-main">Global Fleet Satcom Telemetry</div>
+            <div class="header-sub-text-sub">Real-Time SNMP Monitoring</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- BARRE LATÉRALE : FILTRES & LISTE DES VOLS -->
+        <div class="sidebar-container">
+            <div class="filter-panel">
+                <div class="filter-row">
+                    <div>
+                        <div class="filter-label">Compagnie</div>
+                        <select id="filterAirline" class="filter-select" onchange="applyFilters()">
+                            <option value="all">Toutes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="filter-label">Type d'avion</div>
+                        <select id="filterType" class="filter-select" onchange="applyFilters()">
+                            <option value="all">Tous</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <div class="filter-label">Date du Vol</div>
+                    <input type="date" id="filterDate" class="filter-date" onchange="applyFilters()">
+                </div>
+            </div>
+
+            <div class="flight-list" id="flightList"></div>
+        </div>
+
+        <!-- VUE PRINCIPALE -->
+        <div class="main-view">
+            <!-- EN-TÊTE MODE 1 : DÉTAIL VOL UNIQUE -->
+            <div class="flight-info-header" id="flightDetails">
+                <span>Veuillez sélectionner un vol dans la liste...</span>
+            </div>
+
+            <!-- EN-TÊTE MODE 2 : CARTE GLOBALE FLOTTE EN VOL -->
+            <div class="fleet-info-header" id="fleetSummaryHeader">
+                <div class="fleet-kpi-group">
+                    <div style="font-weight:700; color:var(--navy-blue); font-size:0.95em;">
+                        📡 Flotte Active Monitorée
+                    </div>
+                    <div class="fleet-kpi">
+                        <span class="kpi-dot" style="background:var(--green);"></span>
+                        <span>PAX Nominal : <strong id="fleetKpiOk">0</strong></span>
+                    </div>
+                    <div class="fleet-kpi">
+                        <span class="kpi-dot" style="background:var(--orange);"></span>
+                        <span>PAX Instable : <strong id="fleetKpiWarn">0</strong></span>
+                    </div>
+                    <div class="fleet-kpi">
+                        <span class="kpi-dot" style="background:var(--red);"></span>
+                        <span>PAX Hors Service : <strong id="fleetKpiKo">0</strong></span>
+                    </div>
+                    <div class="fleet-kpi">
+                        <span>Satellites actifs : <strong id="fleetKpiSats">0</strong></span>
+                    </div>
+                </div>
+                <div class="fleet-controls">
+                    <button id="btnToggleTrails" class="btn-action active" onclick="toggleFleetTrails()">
+                        Afficher les trajectoires
+                    </button>
+                    <button class="btn-action" onclick="fitFleetMapBounds()">
+                        Recadrer la flotte
+                    </button>
+                </div>
+            </div>
+
+            <!-- PANNEAU DE STATUT TEMPS RÉEL (Uniquement en mode Détail Vol) -->
+            <div class="status-panel" id="singleStatusPanel">
+                <div class="status-card">
+                    <div id="led-kpsu" class="status-indicator unknown"></div>
+                    <div>
+                        <div class="status-label">KPSU</div>
+                        <div id="text-kpsu" class="status-text">Unknown</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div id="led-krfu" class="status-indicator unknown"></div>
+                    <div>
+                        <div class="status-label">KRFU</div>
+                        <div id="text-krfu" class="status-text">Unknown</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div id="led-antenna" class="status-indicator unknown"></div>
+                    <div>
+                        <div class="status-label">Antenna</div>
+                        <div id="text-antenna" class="status-text">Unknown</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div id="led-pax" class="status-indicator unknown"></div>
+                    <div>
+                        <div class="status-label">PAX Wifi</div>
+                        <div id="text-pax" class="status-text">Unknown</div>
+                    </div>
+                </div>
+                <div class="status-card">
+                    <div id="led-crew" class="status-indicator unknown"></div>
+                    <div>
+                        <div class="status-label">Crew Wifi</div>
+                        <div id="text-crew" class="status-text">Unknown</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ZONE CARTE + TIMELINE -->
+            <div class="visual-container">
+                <div class="map-wrapper">
+                    <div id="map"></div>
+                    
+                    <!-- Sélecteur de fonds de carte sans clé API -->
+                    <div class="map-style-switcher">
+                        <button id="btnMapLight" class="map-style-btn active" onclick="setMapBaseStyle('light')">Clair Pro</button>
+                        <button id="btnMapStreet" class="map-style-btn" onclick="setMapBaseStyle('street')">Atlas</button>
+                        <button id="btnMapDark" class="map-style-btn" onclick="setMapBaseStyle('dark')">Sombre Aero</button>
+                    </div>
+
+                    <div class="map-legend">
+                        <div class="legend-item">
+                            <span class="legend-line" style="background:var(--green);"></span>
+                            <span>Working</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line" style="background:var(--orange);"></span>
+                            <span>Instable</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-line" style="background:var(--red);"></span>
+                            <span>Out of order</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TIMELINE ÉQUIPEMENTS & SATELLITES (Masquée en mode Carte Flotte) -->
+                <div class="chart-container" id="timelineContainer">
+                    <div class="chart-header-bar">
+                        <div class="chart-title">
+                            <span>Chronologie Équipements & Handovers Satellites / Faisceaux</span>
+                        </div>
+                        <div class="chart-legend-inline">
+                            <span><strong>Ligne 1 :</strong> Historique Satellite / Beam le long de la route</span>
+                            <span>•</span>
+                            <span><strong>Axe Droit :</strong> Taux de disponibilité (%)</span>
+                        </div>
+                    </div>
+                    <div class="chart-canvas-wrap">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // ============================================================================
+        // 1. CONFIGURATION & PALETTES
+        // ============================================================================
+        const STATUS_COLORS = {
+            'Working': '#10b981',
+            'Instable': '#f59e0b',
+            'Out of order': '#ef4444',
+            'Unknown': '#cbd5e1'
+        };
+        const STATUS_CLASS = {
+            'Working': 'working',
+            'Instable': 'instable',
+            'Out of order': 'out-of-order',
+            'Unknown': 'unknown'
+        };
+
+        // Palette distincte pour différencier visuellement les segments Satellite / Faisceau sur la timeline
+        const SAT_BEAM_PALETTE = [
+            '#0284c7', '#4f46e5', '#0d9488', '#7c3aed', '#2563eb', '#0891b2', '#3b82f6', '#6366f1'
+        ];
+        const satBeamColorCache = {};
+        let satBeamColorIndex = 0;
+
+        function getSatBeamColor(satBeamKey) {
+            if (!satBeamColorCache[satBeamKey]) {
+                satBeamColorCache[satBeamKey] = SAT_BEAM_PALETTE[satBeamColorIndex % SAT_BEAM_PALETTE.length];
+                satBeamColorIndex++;
+            }
+            return satBeamColorCache[satBeamKey];
+        }
+
+        // ============================================================================
+        // 2. ÉTAT DE L'APPLICATION
+        // ============================================================================
+        let flightDatabase = {}; 
+        let currentSelectedFlightId = null;
+        let currentViewMode = 'single'; // 'single' | 'fleet'
+        let showFleetTrails = true;
+
+        let map, baseTileLayer, labelTileLayer, graticuleLayer;
+        let singleFlightLayerGroup, fleetLayerGroup;
+        let currentPlaneMarker = null;
+        let statusChart = null;
+        
+        let availableAirlines = new Set();
+        let availableTypes = new Set();
+
+        // ============================================================================
+        // 3. INITIALISATION DE LA CARTE (SANS CLÉ API + FALLBACK VECTORIEL)
+        // ============================================================================
+        const TILE_PROVIDERS = {
+            light: {
+                base: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                labels: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+                bg: '#dde6ef',
+                attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+            },
+            street: {
+                base: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+                labels: null,
+                bg: '#cde0f5',
+                attribution: 'Tiles &copy; Esri'
+            },
+            dark: {
+                base: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+                labels: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
+                bg: '#1e293b',
+                attribution: 'Tiles &copy; Esri'
+            }
+        };
+
+        function initMap() {
+            map = L.map('map', {
+                center: [28.0, 10.0],
+                zoom: 2,
+                minZoom: 2,
+                worldCopyJump: true
+            });
+
+            // Grille aéronautique de fond (garantit des repères même hors-ligne)
+            graticuleLayer = createAeronauticalGridLayer();
+            graticuleLayer.addTo(map);
+
+            // Chargement du fond de carte Esri Light Gray (aucune clé API requise)
+            setMapBaseStyle('light');
+
+            singleFlightLayerGroup = L.featureGroup().addTo(map);
+            fleetLayerGroup = L.featureGroup();
+        }
+
+        function createAeronauticalGridLayer() {
+            const group = L.layerGroup();
+            const lineStyle = { color: '#94a3b8', weight: 0.6, opacity: 0.35, dashArray: '3,4', interactive: false };
+            for (let lat = -60; lat <= 60; lat += 30) {
+                L.polyline([[lat, -180], [lat, 180]], lineStyle).addTo(group);
+            }
+            for (let lon = -150; lon <= 180; lon += 30) {
+                L.polyline([[-80, lon], [80, lon]], lineStyle).addTo(group);
+            }
+            return group;
+        }
+
+        function setMapBaseStyle(styleKey) {
+            const cfg = TILE_PROVIDERS[styleKey] || TILE_PROVIDERS.light;
+            document.getElementById('map').style.backgroundColor = cfg.bg;
+
+            ['Light', 'Street', 'Dark'].forEach(k => {
+                const btn = document.getElementById('btnMap' + k);
+                if (btn) btn.classList.toggle('active', k.toLowerCase() === styleKey);
+            });
+
+            if (baseTileLayer) map.removeLayer(baseTileLayer);
+            if (labelTileLayer) map.removeLayer(labelTileLayer);
+
+            baseTileLayer = L.tileLayer(cfg.base, {
+                attribution: cfg.attribution,
+                maxZoom: 16
+            }).addTo(map);
+            baseTileLayer.bringToBack();
+
+            if (cfg.labels) {
+                labelTileLayer = L.tileLayer(cfg.labels, {
+                    maxZoom: 16,
+                    pane: 'overlayPane'
+                }).addTo(map);
+            }
+        }
+
+        function calculateBearing(lat1, lon1, lat2, lon2) {
+            const toRad = (deg) => deg * Math.PI / 180;
+            const toDeg = (rad) => rad * 180 / Math.PI;
+            const dLon = toRad(lon2 - lon1);
+            const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+            const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+            let brng = toDeg(Math.atan2(y, x));
+            return (brng + 360) % 360; 
+        }
+
+        function createPlaneSvgIcon(angleDeg, statusColor, callsignText = '') {
+            return L.divIcon({
+                html: `
+                    <div class="plane-marker-container">
+                        <svg class="plane-svg" style="transform: rotate(${angleDeg}deg);" viewBox="0 0 24 24" fill="${statusColor}" stroke="#001f3f" stroke-width="1.3">
+                            <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+                        </svg>
+                        ${callsignText ? `<span class="plane-callsign-tag">${callsignText}</span>` : ''}
+                    </div>
+                `,
+                className: 'plane-marker-wrapper',
+                iconSize: [34, 34],
+                iconAnchor: [17, 17],
+                popupAnchor: [0, -14]
+            });
+        }
+
+        // ============================================================================
+        // 4. GESTION DES ONGLETS (DÉTAIL VOL vs CARTE FLOTTE LIVE)
+        // ============================================================================
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+
+            document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+            document.getElementById('tabFleet').classList.toggle('active', mode === 'fleet');
+
+            const singleHeader = document.getElementById('flightDetails');
+            const fleetHeader = document.getElementById('fleetSummaryHeader');
+            const statusPanel = document.getElementById('singleStatusPanel');
+            const timelineBox = document.getElementById('timelineContainer');
+
+            if (mode === 'fleet') {
+                // Masquer l'encart timeline des équipements et les LEDs d'un avion unique
+                singleHeader.style.display = 'none';
+                statusPanel.style.display = 'none';
+                timelineBox.style.display = 'none';
+                fleetHeader.style.display = 'flex';
+
+                if (currentPlaneMarker) {
+                    map.removeLayer(currentPlaneMarker);
+                    currentPlaneMarker = null;
+                }
+                map.removeLayer(singleFlightLayerGroup);
+                fleetLayerGroup.addTo(map);
+
+                setTimeout(() => {
+                    map.invalidateSize();
+                    renderFleetMap();
+                    fitFleetMapBounds();
+                }, 50);
+            } else {
+                // Mode Détail par Vol avec la timeline en bas
+                singleHeader.style.display = 'flex';
+                statusPanel.style.display = 'flex';
+                timelineBox.style.display = 'flex';
+                fleetHeader.style.display = 'none';
+
+                map.removeLayer(fleetLayerGroup);
+                singleFlightLayerGroup.addTo(map);
+
+                setTimeout(() => {
+                    map.invalidateSize();
+                    if (!currentSelectedFlightId) {
+                        const firstId = Object.keys(flightDatabase)[0];
+                        if (firstId) selectFlight(firstId);
+                    } else {
+                        updateDashboardUI();
+                    }
+                }, 50);
+            }
+
+            applyFilters();
+        }
+
+        function toggleFleetTrails() {
+            showFleetTrails = !showFleetTrails;
+            document.getElementById('btnToggleTrails').classList.toggle('active', showFleetTrails);
+            if (currentViewMode === 'fleet') renderFleetMap();
+        }
+
+        function fitFleetMapBounds() {
+            if (fleetLayerGroup && fleetLayerGroup.getLayers().length > 0) {
+                const bounds = fleetLayerGroup.getBounds();
+                if (bounds.isValid()) {
+                    map.fitBounds(bounds, { padding: [45, 45], maxZoom: 5 });
+                }
+            } else {
+                map.setView([25.0, 10.0], 2);
+            }
+        }
+
+        // ============================================================================
+        // 5. LOGIQUE MÉTIER & CALCULS DE DISPONIBILITÉ
+        // ============================================================================
+        function getFlightId(reg, flightNum, date) {
+            return `${reg}-${flightNum}-${date}`;
+        }
+
+        function calculateAvailability(history, discreteKey) {
+            if (!history || history.length < 2) return "0%";
+            let totalTime = 0;
+            let workingTime = 0;
+
+            for (let i = 0; i < history.length - 1; i++) {
+                const t1 = new Date(history[i].time).getTime();
+                const t2 = new Date(history[i+1].time).getTime();
+                const duration = Math.max(1, t2 - t1);
+                totalTime += duration;
+
+                if (history[i].fullStatus[discreteKey] === 'Working') {
+                    workingTime += duration;
+                }
+            }
+
+            if (totalTime === 0) return "0%";
+            const pct = Math.round((workingTime / totalTime) * 100);
+            return pct + "%";
+        }
+
+        function countUniqueBeamsSummary(history) {
+            if (!history || history.length === 0) return "0 beam";
+            let transitions = 1;
+            for (let i = 1; i < history.length; i++) {
+                const prev = `${history[i-1].satInfo.name}/${history[i-1].satInfo.beam}`;
+                const curr = `${history[i].satInfo.name}/${history[i].satInfo.beam}`;
+                if (prev !== curr) transitions++;
+            }
+            return `${transitions} faisceau${transitions > 1 ? 'x' : ''}`;
+        }
+
+        function processSNMPQuery(data, isFinal = false, isBackfill = false) {
+            const flightId = getFlightId(data.registration, data.flightNum, data.flightDate);
+
+            if (!flightDatabase[flightId]) {
+                flightDatabase[flightId] = {
+                    info: {
+                        registration: data.registration,
+                        flightNum: data.flightNum,
+                        airlineCode: data.airlineCode || 'XX',
+                        aircraftType: data.aircraftType || 'Unknown Type',
+                        date: data.flightDate,
+                        dep: data.dep,
+                        arr: data.arr
+                    },
+                    state: 'LIVE',
+                    currentSat: { name: data.satName || 'Searching...', beam: data.beamId || '---' },
+                    status: {
+                        'KPSU status': 'Working',
+                        'KRFU status': 'Working',
+                        'Antenna status': 'Working',
+                        'PAX connectivity': 'Working',
+                        'Crew connectivity': 'Working'
+                    },
+                    history: []
+                };
+                
+                updateFiltersOptions(flightDatabase[flightId].info);
+                if (!isBackfill) applyFilters(); 
+            }
+
+            const flight = flightDatabase[flightId];
+            if (flight.state === 'LANDED' && !isFinal) return;
+            if (isFinal) {
+                flight.state = 'LANDED';
+                applyFilters();
+            }
+
+            if (data.fullStatusSnapshot) {
+                flight.status = { ...data.fullStatusSnapshot };
+            } else if (data.discreteName) {
+                flight.status[data.discreteName] = data.discreteValue;
+            }
+
+            if (data.satName) flight.currentSat.name = data.satName;
+            if (data.beamId) flight.currentSat.beam = data.beamId;
+
+            const fullStatusSnapshot = { ...flight.status };
+
+            flight.history.push({
+                time: data.timestamp,
+                lat: data.gps.lat,
+                lon: data.gps.lon,
+                paxStatusForMap: fullStatusSnapshot['PAX connectivity'],
+                fullStatus: fullStatusSnapshot,
+                satInfo: { 
+                    name: data.satName || flight.currentSat.name, 
+                    beam: data.beamId || flight.currentSat.beam 
+                }
+            });
+
+            if (flight.state === 'LIVE' && flight.history.length > 2000) {
+                flight.history.shift();
+            }
+
+            if (!isBackfill) {
+                updateLiveCounterBadge();
+                if (currentViewMode === 'single' && currentSelectedFlightId === flightId) {
+                    updateDashboardUI();
+                } else if (currentViewMode === 'fleet') {
+                    renderFleetMap();
+                }
+            }
+        }
+
+        function updateLiveCounterBadge() {
+            const liveCount = Object.values(flightDatabase).filter(f => f.state === 'LIVE').length;
+            const badge = document.getElementById('liveCountBadge');
+            if (badge) badge.innerText = liveCount;
+        }
+
+        // ============================================================================
+        // 6. FILTRES & BARRE LATÉRALE
+        // ============================================================================
+        function updateFiltersOptions(info) {
+            const airlineSelect = document.getElementById('filterAirline');
+            const typeSelect = document.getElementById('filterType');
+            
+            if (!availableAirlines.has(info.airlineCode)) {
+                availableAirlines.add(info.airlineCode);
+                const opt = document.createElement('option');
+                opt.value = info.airlineCode;
+                opt.text = info.airlineCode;
+                airlineSelect.appendChild(opt);
+            }
+            if (!availableTypes.has(info.aircraftType)) {
+                availableTypes.add(info.aircraftType);
+                const opt = document.createElement('option');
+                opt.value = info.aircraftType;
+                opt.text = info.aircraftType;
+                typeSelect.appendChild(opt);
+            }
+        }
+
+        function getFilteredFlightIds() {
+            const fAirline = document.getElementById('filterAirline').value;
+            const fType = document.getElementById('filterType').value;
+            const fDate = document.getElementById('filterDate').value;
+
+            return Object.keys(flightDatabase).filter(id => {
+                const f = flightDatabase[id];
+                const info = f.info;
+                if (fAirline !== 'all' && info.airlineCode !== fAirline) return false;
+                if (fType !== 'all' && info.aircraftType !== fType) return false;
+                if (fDate !== '' && info.date !== fDate) return false;
+                // En mode Carte Flotte en Vol, on met en avant les vols LIVE
+                return true;
+            });
+        }
+
+        function applyFilters() {
+            renderSidebar();
+            updateLiveCounterBadge();
+            if (currentViewMode === 'fleet') {
+                renderFleetMap();
+            }
+        }
+
+        function renderSidebar() {
+            const list = document.getElementById('flightList');
+            list.innerHTML = ''; 
+
+            const filteredIds = getFilteredFlightIds();
+
+            filteredIds.sort((a, b) => {
+                const stateA = flightDatabase[a].state;
+                const stateB = flightDatabase[b].state;
+                if (stateA === stateB) return 0;
+                return stateA === 'LIVE' ? -1 : 1;
+            });
+
+            filteredIds.forEach(id => {
+                const f = flightDatabase[id];
+                const item = document.createElement('div');
+                item.className = `flight-item ${currentSelectedFlightId === id ? 'active' : ''}`;
+                item.onclick = () => handleSidebarFlightClick(id);
+
+                const badgeClass = f.state === 'LIVE' ? 'badge-live' : 'badge-landed';
+                const badgeText = f.state === 'LIVE' ? 'LIVE' : 'LANDED';
+                const logoUrl = `https://pics.avs.io/200/200/${f.info.airlineCode}.png`;
+                const satLabel = f.state === 'LIVE'
+                    ? `📡 ${f.currentSat.name} / ${f.currentSat.beam}`
+                    : `📡 Vol terminé (${countUniqueBeamsSummary(f.history)})`;
+
+                item.innerHTML = `
+                    <div class="flight-logo-wrapper">
+                        <img src="${logoUrl}" class="flight-logo" alt="${f.info.airlineCode}" onerror="this.style.display='none'; this.parentElement.innerText='${f.info.airlineCode}';">
+                    </div>
+                    <div class="flight-details-col">
+                        <div class="flight-header">
+                            <span class="flight-id">${f.info.flightNum}</span>
+                            <span class="badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span class="flight-route">${f.info.dep} ➝ ${f.info.arr}</span>
+                            <span class="flight-type">${f.info.aircraftType}</span>
+                        </div>
+                        <div class="flight-sat-mini">${satLabel}</div>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function handleSidebarFlightClick(id) {
+            const f = flightDatabase[id];
+            if (currentViewMode === 'fleet') {
+                if (f.state === 'LIVE' && f.history.length > 0) {
+                    currentSelectedFlightId = id;
+                    renderSidebar();
+                    const last = f.history[f.history.length - 1];
+                    map.setView([last.lat, last.lon], 5);
+                    renderFleetMap(id);
+                } else {
+                    // Si l'utilisateur clique sur un vol LANDED depuis l'onglet flotte, on ouvre sa vue détaillée
+                    currentSelectedFlightId = id;
+                    switchViewMode('single');
+                }
+            } else {
+                selectFlight(id);
+            }
+        }
+
+        function openSingleFlightFromFleet(id) {
+            currentSelectedFlightId = id;
+            switchViewMode('single');
+            selectFlight(id);
+        }
+
+        // ============================================================================
+        // 7. VUE DÉTAILLÉE D'UN VOL & TIMELINE PROFESSIONNELLE
+        // ============================================================================
+        function selectFlight(id) {
+            currentSelectedFlightId = id;
+            renderSidebar();
+            singleFlightLayerGroup.clearLayers();
+            if (currentPlaneMarker) {
+                map.removeLayer(currentPlaneMarker);
+                currentPlaneMarker = null;
+            }
+            updateDashboardUI();
+            
+            const flight = flightDatabase[id];
+            if (!flight || flight.history.length === 0) return;
+
+            setTimeout(() => {
+                if (singleFlightLayerGroup.getBounds().isValid()) {
+                    map.fitBounds(singleFlightLayerGroup.getBounds(), { padding: [45, 45], maxZoom: 6 });
+                }
+            }, 60);
+        }
+
+        function updateDashboardUI() {
+            if (!currentSelectedFlightId || !flightDatabase[currentSelectedFlightId]) return;
+            const flight = flightDatabase[currentSelectedFlightId];
+            const lastHistory = flight.history.length > 0 ? flight.history[flight.history.length - 1] : null;
+            const lastUpdate = lastHistory ? new Date(lastHistory.time).toLocaleTimeString() : '--:--';
+            
+            // Satellite et faisceau actifs (ou dernier utilisé si vol atterri)
+            const activeSatName = flight.state === 'LIVE'
+                ? flight.currentSat.name
+                : (lastHistory ? lastHistory.satInfo.name : 'N/A');
+            const activeBeam = flight.state === 'LIVE'
+                ? flight.currentSat.beam
+                : (lastHistory ? lastHistory.satInfo.beam : '-');
+
+            const statusHtml = flight.state === 'LIVE' 
+                ? `<span style="color:var(--red); font-weight:700;">● EN VOL</span>` 
+                : `<span style="color:var(--green); font-weight:700;">● ARRIVÉ</span>`;
+            const logoUrl = `https://pics.avs.io/200/200/${flight.info.airlineCode}.png`;
+
+            document.getElementById('flightDetails').innerHTML = `
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div class="flight-logo-wrapper" style="width:42px; height:42px;">
+                        <img src="${logoUrl}" style="width:36px; height:36px; object-fit:contain;" onerror="this.style.display='none'; this.parentElement.innerText='${flight.info.airlineCode}';">
+                    </div>
+                    <div>
+                        <div style="font-size:1.18em; font-weight:700; color:var(--navy-blue); display:flex; align-items:center; gap:8px;">
+                            <span>${flight.info.flightNum}</span>
+                            <span style="font-size:0.65em; background:#e2e8f0; padding:2px 7px; border-radius:4px; color:#334155; font-weight:600;">${flight.info.aircraftType}</span>
+                        </div> 
+                        <span style="color:var(--text-secondary); font-size:0.84em;">Immat : <strong>${flight.info.registration}</strong> | Date : ${flight.info.date}</span>
+                    </div>
+                </div>
+
+                <div class="sat-badge-box">
+                    <div>
+                        <div class="sat-badge-label">${flight.state === 'LIVE' ? 'Satellite & Faisceau Actuels' : 'Dernier Satellite / Faisceau'}</div>
+                        <div class="sat-badge-value">📡 ${activeSatName} &bull; Beam ${activeBeam}</div>
+                    </div>
+                </div>
+
+                <div style="text-align:right; font-size:0.85em;">
+                    <div style="font-size:1.1em; font-weight:700; color:var(--navy-blue);">${flight.info.dep} ➝ ${flight.info.arr}</div>
+                    <div>${statusHtml} <span style="color:var(--text-secondary);">(${lastUpdate})</span></div>
+                </div>
+            `;
+
+            updateLed('kpsu', flight.status['KPSU status']);
+            updateLed('krfu', flight.status['KRFU status']);
+            updateLed('antenna', flight.status['Antenna status']);
+            updateLed('pax', flight.status['PAX connectivity']);
+            updateLed('crew', flight.status['Crew connectivity']);
+
+            drawSingleFlightPath(flight.history, flight.state, flight.info.flightNum);
+            drawHistoryChart(flight.history);
+        }
+
+        function updateLed(idSuffix, status) {
+            const led = document.getElementById(`led-${idSuffix}`);
+            const text = document.getElementById(`text-${idSuffix}`);
+            led.className = 'status-indicator'; 
+            led.classList.add(STATUS_CLASS[status] || 'unknown');
+            text.innerText = status;
+        }
+
+        function drawSingleFlightPath(history, state, flightNum) {
+            if (history.length === 0) return;
+            singleFlightLayerGroup.clearLayers();
+
+            for (let i = 1; i < history.length; i++) {
+                const start = history[i-1];
+                const end = history[i];
+                const color = STATUS_COLORS[start.paxStatusForMap] || STATUS_COLORS['Unknown'];
+                
+                const seg = L.polyline([[start.lat, start.lon], [end.lat, end.lon]], {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.9
+                }).addTo(singleFlightLayerGroup);
+
+                // Marqueur discret sur la trajectoire lors d'un changement de satellite/faisceau
+                const prevSat = `${start.satInfo.name} / ${start.satInfo.beam}`;
+                const currSat = `${end.satInfo.name} / ${end.satInfo.beam}`;
+                if (prevSat !== currSat) {
+                    L.circleMarker([end.lat, end.lon], {
+                        radius: 4,
+                        color: '#001f3f',
+                        fillColor: '#38bdf8',
+                        fillOpacity: 1,
+                        weight: 1.5
+                    }).bindTooltip(`Handover Satcom : <b>${currSat}</b>`, { direction: 'top' })
+                      .addTo(singleFlightLayerGroup);
+                }
+            }
+
+            // Point de départ
+            const firstPos = history[0];
+            L.circleMarker([firstPos.lat, firstPos.lon], {
+                radius: 4,
+                color: '#001f3f',
+                fillColor: '#ffffff',
+                fillOpacity: 1,
+                weight: 2
+            }).bindTooltip(`Départ (${firstPos.satInfo.name} / ${firstPos.satInfo.beam})`).addTo(singleFlightLayerGroup);
+
+            const lastPos = history[history.length - 1];
+            if (state === 'LIVE') {
+                let angle = 45;
+                if (history.length > 1) {
+                    const prevPos = history[history.length - 2];
+                    angle = calculateBearing(prevPos.lat, prevPos.lon, lastPos.lat, lastPos.lon);
+                }
+                const statusColor = STATUS_COLORS[lastPos.paxStatusForMap] || '#0074D9';
+                const planeIcon = createPlaneSvgIcon(angle, statusColor, flightNum);
+
+                if (!currentPlaneMarker) {
+                    currentPlaneMarker = L.marker([lastPos.lat, lastPos.lon], { icon: planeIcon }).addTo(map);
+                } else {
+                    currentPlaneMarker.setLatLng([lastPos.lat, lastPos.lon]);
+                    currentPlaneMarker.setIcon(planeIcon);
+                }
+            } else {
+                if (currentPlaneMarker) {
+                    map.removeLayer(currentPlaneMarker);
+                    currentPlaneMarker = null;
+                }
+                L.circleMarker([lastPos.lat, lastPos.lon], {
+                    radius: 6,
+                    color: '#fff',
+                    fillColor: STATUS_COLORS['Working'],
+                    fillOpacity: 1,
+                    weight: 2
+                }).bindTooltip(`Arrivée ${flightNum}`).addTo(singleFlightLayerGroup);
+            }
+        }
+
+        // ============================================================================
+        // 8. CARTE GLOBALE DE LA FLOTTE EN VOL (ONGLET 2)
+        // ============================================================================
+        function renderFleetMap(openPopupFlightId = null) {
+            if (!fleetLayerGroup) return;
+            fleetLayerGroup.clearLayers();
+
+            const filteredIds = getFilteredFlightIds();
+            const liveFlights = filteredIds
+                .map(id => ({ id, flight: flightDatabase[id] }))
+                .filter(item => item.flight.state === 'LIVE' && item.flight.history.length > 0);
+
+            let countOk = 0;
+            let countWarn = 0;
+            let countKo = 0;
+            const activeSatsSet = new Set();
+
+            liveFlights.forEach(({ id, flight }) => {
+                const history = flight.history;
+                const lastPos = history[history.length - 1];
+                const paxStatus = flight.status['PAX connectivity'];
+
+                if (paxStatus === 'Working') countOk++;
+                else if (paxStatus === 'Instable') countWarn++;
+                else if (paxStatus === 'Out of order') countKo++;
+
+                if (flight.currentSat && flight.currentSat.name) {
+                    activeSatsSet.add(flight.currentSat.name);
+                }
+
+                // Trajectoire de chaque avion en vol (si activée)
+                if (showFleetTrails && history.length > 1) {
+                    for (let i = 1; i < history.length; i++) {
+                        const start = history[i - 1];
+                        const end = history[i];
+                        const segColor = STATUS_COLORS[start.paxStatusForMap] || STATUS_COLORS['Unknown'];
+                        L.polyline([[start.lat, start.lon], [end.lat, end.lon]], {
+                            color: segColor,
+                            weight: 2.5,
+                            opacity: 0.72
+                        }).addTo(fleetLayerGroup);
+                    }
+                }
+
+                // Calcul du cap de l'avion
+                let angle = 45;
+                if (history.length > 1) {
+                    const prevPos = history[history.length - 2];
+                    angle = calculateBearing(prevPos.lat, prevPos.lon, lastPos.lat, lastPos.lon);
+                }
+
+                const markerColor = STATUS_COLORS[paxStatus] || '#0074D9';
+                const icon = createPlaneSvgIcon(angle, markerColor, flight.info.flightNum);
+
+                const marker = L.marker([lastPos.lat, lastPos.lon], { icon }).addTo(fleetLayerGroup);
+
+                const popupHtml = `
+                    <div class="fleet-popup">
+                        <div class="fleet-popup-head">
+                            <strong style="color:var(--navy-blue); font-size:1.05em;">${flight.info.flightNum} (${flight.info.dep} ➝ ${flight.info.arr})</strong>
+                            <span style="font-size:0.75em; background:#e2e8f0; padding:1px 5px; border-radius:3px;">${flight.info.aircraftType}</span>
+                        </div>
+                        <div style="font-size:0.78em; color:#64748b; margin-bottom:6px;">
+                            Immat : <strong>${flight.info.registration}</strong>
+                        </div>
+                        <div class="fleet-popup-sat">
+                            📡 ${flight.currentSat.name} / Beam ${flight.currentSat.beam}
+                        </div>
+                        <div class="fleet-popup-grid">
+                            <div>KPSU: <strong style="color:${STATUS_COLORS[flight.status['KPSU status']]}">${flight.status['KPSU status']}</strong></div>
+                            <div>KRFU: <strong style="color:${STATUS_COLORS[flight.status['KRFU status']]}">${flight.status['KRFU status']}</strong></div>
+                            <div>Antenna: <strong style="color:${STATUS_COLORS[flight.status['Antenna status']]}">${flight.status['Antenna status']}</strong></div>
+                            <div>PAX Wifi: <strong style="color:${STATUS_COLORS[flight.status['PAX connectivity']]}">${flight.status['PAX connectivity']}</strong></div>
+                            <div>Crew Wifi: <strong style="color:${STATUS_COLORS[flight.status['Crew connectivity']]}">${flight.status['Crew connectivity']}</strong></div>
+                        </div>
+                        <button class="fleet-popup-btn" onclick="openSingleFlightFromFleet('${id}')">
+                            Voir la timeline détaillée du vol
+                        </button>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml);
+                if (openPopupFlightId === id) {
+                    setTimeout(() => marker.openPopup(), 50);
+                }
+            });
+
+            // Mise à jour des KPIs de l'en-tête Flotte
+            document.getElementById('fleetKpiOk').innerText = countOk;
+            document.getElementById('fleetKpiWarn').innerText = countWarn;
+            document.getElementById('fleetKpiKo').innerText = countKo;
+            document.getElementById('fleetKpiSats').innerText = activeSatsSet.size;
+        }
+
+        // ============================================================================
+        // 9. TIMELINE CHART.JS AVEC HISTORIQUE SATELLITES / FAISCEAUX & LIGNES FINES
+        // ============================================================================
+        // Plugin personnalisé pour dessiner les étiquettes de faisceaux satellites et les lignes de handover
+        const satBeamTimelinePlugin = {
+            id: 'satBeamTimelinePlugin',
+            afterDatasetsDraw(chart) {
+                const history = chart.$flightHistory;
+                if (!history || history.length < 2) return;
+
+                const ctx = chart.ctx;
+                const xAxis = chart.scales.x;
+                const yAxis = chart.scales.y;
+                if (!xAxis || !yAxis) return;
+
+                const satRowY = yAxis.getPixelForValue('Sat / Beam');
+                const chartArea = chart.chartArea;
+
+                // Regrouper l'historique en segments contigus de (Satellite + Beam)
+                const segments = [];
+                let segStart = 0;
+                for (let i = 1; i <= history.length; i++) {
+                    const prevSat = `${history[segStart].satInfo.name} / ${history[segStart].satInfo.beam}`;
+                    const currSat = i < history.length ? `${history[i].satInfo.name} / ${history[i].satInfo.beam}` : null;
+
+                    if (currSat !== prevSat) {
+                        segments.push({
+                            startIndex: segStart,
+                            endIndex: i - 1,
+                            satName: history[segStart].satInfo.name,
+                            beam: history[segStart].satInfo.beam,
+                            label: `${history[segStart].satInfo.name} • ${history[segStart].satInfo.beam}`,
+                            color: getSatBeamColor(prevSat)
+                        });
+                        segStart = i;
+                    }
+                }
+
+                ctx.save();
+
+                segments.forEach((seg, idx) => {
+                    const xStart = xAxis.getPixelForValue(seg.startIndex);
+                    const xEnd = xAxis.getPixelForValue(idx < segments.length - 1 ? segments[idx + 1].startIndex : seg.endIndex);
+                    const width = xEnd - xStart;
+
+                    // 1. Ligne verticale pointillée à chaque handover de faisceau/satellite
+                    if (idx > 0 && xStart >= chartArea.left && xStart <= chartArea.right) {
+                        ctx.beginPath();
+                        ctx.setLineDash([3, 3]);
+                        ctx.strokeStyle = 'rgba(2, 132, 199, 0.45)';
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(xStart, chartArea.top);
+                        ctx.lineTo(xStart, chartArea.bottom);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+                    }
+
+                    // 2. Étiquette du Satellite / Faisceau au-dessus du segment sur la piste "Sat / Beam"
+                    if (width > 38) {
+                        const centerX = xStart + width / 2;
+                        ctx.font = '600 10px "JetBrains Mono", monospace';
+                        let displayText = seg.label;
+                        if (ctx.measureText(displayText).width > width - 8) {
+                            displayText = seg.beam;
+                        }
+
+                        if (ctx.measureText(displayText).width <= width - 4) {
+                            const textWidth = ctx.measureText(displayText).width;
+                            const pillW = textWidth + 10;
+                            const pillH = 15;
+                            const pillX = centerX - pillW / 2;
+                            const pillY = satRowY - 19;
+
+                            ctx.fillStyle = '#f0f9ff';
+                            ctx.strokeStyle = seg.color;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.roundRect(pillX, pillY, pillW, pillH, 3);
+                            ctx.fill();
+                            ctx.stroke();
+
+                            ctx.fillStyle = '#001f3f';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText(displayText, centerX, pillY + pillH / 2);
+                        }
+                    }
+                });
+
+                ctx.restore();
+            }
+        };
+
+        function drawHistoryChart(history) {
+            const canvas = document.getElementById('statusChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Calcul des pourcentages de disponibilité et du résumé des faisceaux
+            const satSummary = countUniqueBeamsSummary(history);
+            const pctKPSU = calculateAvailability(history, 'KPSU status');
+            const pctKRFU = calculateAvailability(history, 'KRFU status');
+            const pctAntenna = calculateAvailability(history, 'Antenna status');
+            const pctPax = calculateAvailability(history, 'PAX connectivity');
+            const pctCrew = calculateAvailability(history, 'Crew connectivity');
+
+            const labels = history.map(h => new Date(h.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+
+            // Piste dédiée "Sat / Beam" en haut de la timeline
+            const dataSatBeam = history.map((h, idx) => {
+                const satBeamStr = `${h.satInfo.name} / ${h.satInfo.beam}`;
+                return {
+                    x: idx,
+                    y: 'Sat / Beam',
+                    status: satBeamStr,
+                    satBeamKey: satBeamStr,
+                    isSatRow: true
+                };
+            });
+
+            const createEquipmentDataset = (rowLabel, discreteKey) => {
+                return history.map((h, idx) => ({
+                    x: idx,
+                    y: rowLabel,
+                    status: h.fullStatus[discreteKey],
+                    satBeamKey: `${h.satInfo.name} / ${h.satInfo.beam}`,
+                    isSatRow: false
+                }));
+            };
+            
+            const dataKPSU = createEquipmentDataset('KPSU Status', 'KPSU status');
+            const dataKRFU = createEquipmentDataset('KRFU Status', 'KRFU status');
+            const dataAntenna = createEquipmentDataset('Antenna Status', 'Antenna status');
+            const dataPax = createEquipmentDataset('PAX Wifi', 'PAX connectivity');
+            const dataCrew = createEquipmentDataset('Crew Wifi', 'Crew connectivity');
+
+            const yRightLabels = [satSummary, pctKPSU, pctKRFU, pctAntenna, pctPax, pctCrew];
+
+            if (statusChart) {
+                statusChart.$flightHistory = history;
+                statusChart.data.labels = labels;
+                statusChart.data.datasets[0].data = dataSatBeam;
+                statusChart.data.datasets[1].data = dataKPSU;
+                statusChart.data.datasets[2].data = dataKRFU;
+                statusChart.data.datasets[3].data = dataAntenna;
+                statusChart.data.datasets[4].data = dataPax;
+                statusChart.data.datasets[5].data = dataCrew;
+                
+                statusChart.options.scales.y2.labels = yRightLabels;
+                statusChart.update('none');
+            } else {
+                statusChart = new Chart(ctx, {
+                    type: 'line',
+                    plugins: [satBeamTimelinePlugin],
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            { label: 'Sat / Beam', data: dataSatBeam, borderWidth: 6 },
+                            { label: 'KPSU', data: dataKPSU, borderWidth: 7 },
+                            { label: 'KRFU', data: dataKRFU, borderWidth: 7 },
+                            { label: 'Antenna', data: dataAntenna, borderWidth: 7 },
+                            { label: 'PAX', data: dataPax, borderWidth: 7 },
+                            { label: 'Crew', data: dataCrew, borderWidth: 7 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        layout: {
+                            padding: { top: 14, bottom: 2 }
+                        },
+                        interaction: { intersect: false, mode: 'index', axis: 'x' },
+                        elements: {
+                            // Lignes fines et nettes de style télémétrie industrielle
+                            line: {
+                                borderWidth: 7,
+                                borderCapStyle: 'butt',
+                                borderJoinStyle: 'miter',
+                                tension: 0,
+                                stepped: true
+                            },
+                            point: { radius: 0, hoverRadius: 3 }
+                        },
+                        segment: {
+                            borderColor: ctxSeg => {
+                                if (ctxSeg.p0 && ctxSeg.p0.raw) {
+                                    const raw = ctxSeg.p0.raw;
+                                    if (raw.isSatRow) {
+                                        return getSatBeamColor(raw.satBeamKey);
+                                    }
+                                    return STATUS_COLORS[raw.status] || STATUS_COLORS['Unknown'];
+                                }
+                                return STATUS_COLORS['Unknown'];
+                            }
+                        },
+                        scales: {
+                            x: { 
+                                grid: { color: '#f1f5f9', drawBorder: false }, 
+                                ticks: { 
+                                    color: '#64748b',
+                                    maxTicksLimit: 9,
+                                    font: { size: 10 }
+                                } 
+                            },
+                            y: {
+                                type: 'category', 
+                                labels: ['Sat / Beam', 'KPSU Status', 'KRFU Status', 'Antenna Status', 'PAX Wifi', 'Crew Wifi'],
+                                offset: true,
+                                grid: { color: '#f1f5f9' },
+                                ticks: {
+                                    font: { weight: '700', size: 11 },
+                                    color: (c) => c.tick && c.tick.label === 'Sat / Beam' ? '#0284c7' : '#001f3f'
+                                }
+                            },
+                            y2: {
+                                position: 'right',
+                                type: 'category',
+                                labels: yRightLabels,
+                                offset: true,
+                                grid: { display: false }, 
+                                ticks: {
+                                    font: { weight: '600', size: 10.5, family: '"JetBrains Mono", monospace' },
+                                    color: '#334155'
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 31, 63, 0.94)',
+                                titleFont: { size: 11, weight: 'bold' },
+                                bodyFont: { size: 11 },
+                                padding: 10,
+                                callbacks: {
+                                    title: (items) => {
+                                        if (!items.length) return '';
+                                        const idx = items[0].dataIndex;
+                                        const h = statusChart.$flightHistory && statusChart.$flightHistory[idx];
+                                        return h ? `Heure : ${items[0].label}  |  📡 ${h.satInfo.name} (${h.satInfo.beam})` : items[0].label;
+                                    },
+                                    label: (c) => ` ${c.dataset.label} : ${c.raw.status}`
+                                }
+                            }
+                        }
+                    }
+                });
+                statusChart.$flightHistory = history;
+            }
+        }
+
+        // ============================================================================
+        // 10. GÉNÉRATEUR DE DONNÉES SIMULÉES AVEC HANDOVERS SATELLITES & FAISCEAUX
+        // ============================================================================
+        const airlines = [
+            { code: 'AF', name: 'Air France' }, { code: 'DL', name: 'Delta' },
+            { code: 'EK', name: 'Emirates' }, { code: 'LH', name: 'Lufthansa' },
+            { code: 'BA', name: 'British Airways' }, { code: 'UA', name: 'United' },
+            { code: 'QR', name: 'Qatar Airways' }, { code: 'JL', name: 'Japan Airlines' }
+        ];
+
+        const aircraftTypes = ['A350-900', 'B777-300ER', 'A321neo', 'B787-9', 'A380-800', 'A330-900'];
+
+        const routes = [
+            { dep: 'CDG', arr: 'JFK', start: {lat: 49.0, lon: 2.5}, end: {lat: 40.6, lon: -73.7}, duration: 8 },
+            { dep: 'LHR', arr: 'DXB', start: {lat: 51.5, lon: -0.4}, end: {lat: 25.2, lon: 55.3}, duration: 7 },
+            { dep: 'HND', arr: 'LAX', start: {lat: 35.5, lon: 139.7}, end: {lat: 33.9, lon: -118.4}, duration: 10 },
+            { dep: 'FRA', arr: 'SIN', start: {lat: 50.0, lon: 8.5}, end: {lat: 1.3, lon: 103.9}, duration: 12 },
+            { dep: 'DXB', arr: 'SYD', start: {lat: 25.2, lon: 55.3}, end: {lat: -33.8, lon: 151.2}, duration: 14 },
+            { dep: 'SFO', arr: 'LHR', start: {lat: 37.6, lon: -122.3}, end: {lat: 51.5, lon: -0.4}, duration: 10 },
+            { dep: 'GRU', arr: 'CDG', start: {lat: -23.4, lon: -46.4}, end: {lat: 49.0, lon: 2.5}, duration: 11 },
+            { dep: 'DOH', arr: 'ICN', start: {lat: 25.2, lon: 51.6}, end: {lat: 37.4, lon: 126.4}, duration: 9 }
+        ];
+
+        const satellites = [
+            { name: 'Eutelsat 10B', beams: ['EU-101', 'AT-102', 'AT-103', 'NA-104'] },
+            { name: 'Inmarsat GX5', beams: ['GX-EMEA1', 'GX-EMEA2', 'GX-ME3'] },
+            { name: 'Viasat-3', beams: ['VS3-B1', 'VS3-B2', 'VS3-B3'] },
+            { name: 'SES-17', beams: ['KA-01', 'KA-02', 'KA-03'] },
+            { name: 'Intelsat IS-40e', beams: ['IS-N1', 'IS-N2', 'IS-A3'] }
+        ];
+
+        const discretesList = ['KPSU status', 'KRFU status', 'Antenna status', 'PAX connectivity', 'Crew connectivity'];
+        const possibleStatuses = ['Working', 'Working', 'Working', 'Instable', 'Out of order'];
+
+        let activeMockFlights = [];
+
+        function getRandomStatus() {
+            let s = {};
+            discretesList.forEach(d => {
+                s[d] = 'Working'; 
+                if (Math.random() > 0.88) { 
+                    s[d] = possibleStatuses[Math.floor(Math.random() * possibleStatuses.length)];
+                }
+            });
+            return s;
+        }
+
+        function createNewMockFlight(isLiveInit = false) {
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const id = Math.floor(Math.random() * 900) + 100;
+            const airline = airlines[Math.floor(Math.random() * airlines.length)];
+            const acType = aircraftTypes[Math.floor(Math.random() * aircraftTypes.length)];
+            const dateStr = new Date().toISOString().split('T')[0];
+
+            let progress = isLiveInit ? (0.25 + Math.random() * 0.55) : 0.02; 
+            const currentLat = route.start.lat + (route.end.lat - route.start.lat) * progress;
+            const currentLon = route.start.lon + (route.end.lon - route.start.lon) * progress;
+
+            let satIndex = Math.floor(Math.random() * satellites.length);
+            let beamIndex = 0;
+
+            const flightObj = {
+                reg: `${airline.code}-F${Math.floor(Math.random()*899 + 100)}`,
+                num: `${airline.code}${id}`,
+                airlineCode: airline.code,
+                aircraftType: acType,
+                date: dateStr,
+                dep: route.dep,
+                arr: route.arr,
+                lat: currentLat,
+                lon: currentLon,
+                destLat: route.end.lat,
+                destLon: route.end.lon,
+                stepLat: (route.end.lat - route.start.lat) / (route.duration * 3600),
+                stepLon: (route.end.lon - route.start.lon) / (route.duration * 3600),
+                satIndex: satIndex,
+                beamIndex: beamIndex,
+                tickCounter: 0,
+                isLanded: false
+            };
+
+            activeMockFlights.push(flightObj);
+
+            if (isLiveInit) {
+                const flightDurationMs = route.duration * 3600 * 1000;
+                const timeElapsedMs = flightDurationMs * progress;
+                const now = Date.now();
+                const startTime = now - timeElapsedMs;
+                const steps = Math.max(12, Math.floor(timeElapsedMs / 600000)); 
+                let currentStatus = getRandomStatus();
+
+                for (let i = 0; i < steps; i++) {
+                    const t = startTime + (i * 600000);
+                    const p = (i / steps) * progress;
+                    const lat = route.start.lat + (route.end.lat - route.start.lat) * p;
+                    const lon = route.start.lon + (route.end.lon - route.start.lon) * p;
+                    
+                    // Simulation réaliste des handovers de faisceaux et de satellites le long de la route
+                    if (i > 0 && i % 6 === 0) {
+                        flightObj.beamIndex++;
+                        if (flightObj.beamIndex >= satellites[flightObj.satIndex].beams.length) {
+                            flightObj.satIndex = (flightObj.satIndex + 1) % satellites.length;
+                            flightObj.beamIndex = 0;
+                        }
+                    }
+
+                    if (i % 5 === 0) {
+                        currentStatus = getRandomStatus();
+                    }
+
+                    const satObj = satellites[flightObj.satIndex];
+                    const payload = {
+                        timestamp: new Date(t).toISOString(),
+                        registration: flightObj.reg,
+                        flightNum: flightObj.num,
+                        flightDate: dateStr,
+                        airlineCode: airline.code,
+                        aircraftType: acType,
+                        dep: route.dep,
+                        arr: route.arr,
+                        gps: { lat: lat, lon: lon },
+                        discreteName: 'KPSU status',
+                        discreteValue: currentStatus['KPSU status'],
+                        fullStatusSnapshot: { ...currentStatus },
+                        satName: satObj.name,
+                        beamId: satObj.beams[flightObj.beamIndex]
+                    };
+                    processSNMPQuery(payload, false, true); 
+                }
+            }
+        }
+
+        function generateLandedFlight(dateOffset = 0) {
+            const route = routes[Math.floor(Math.random() * routes.length)];
+            const airline = airlines[Math.floor(Math.random() * airlines.length)];
+            const acType = aircraftTypes[Math.floor(Math.random() * aircraftTypes.length)];
+            const flightId = Math.floor(Math.random() * 900) + 100;
+            const date = new Date();
+            date.setDate(date.getDate() - dateOffset);
+            const dateStr = date.toISOString().split('T')[0];
+            const baseTime = date.getTime() - (route.duration * 3600 * 1000);
+            const steps = 32; 
+            
+            let satIndex = Math.floor(Math.random() * satellites.length);
+            let beamIndex = 0;
+            let status = getRandomStatus();
+            let history = [];
+
+            for (let i = 0; i <= steps; i++) {
+                const ratio = i / steps;
+                const lat = route.start.lat + (route.end.lat - route.start.lat) * ratio;
+                const lon = route.start.lon + (route.end.lon - route.start.lon) * ratio;
+                
+                if (i > 0 && i % 7 === 0) {
+                    beamIndex++;
+                    if (beamIndex >= satellites[satIndex].beams.length) {
+                        satIndex = (satIndex + 1) % satellites.length;
+                        beamIndex = 0;
+                    }
+                }
+
+                if (i % 6 === 0 && Math.random() > 0.4) {
+                    status = getRandomStatus();
+                }
+
+                const satObj = satellites[satIndex];
+                history.push({
+                    time: new Date(baseTime + (i * 900000)).toISOString(),
+                    lat: lat,
+                    lon: lon,
+                    paxStatusForMap: status['PAX connectivity'],
+                    fullStatus: { ...status },
+                    satInfo: { name: satObj.name, beam: satObj.beams[beamIndex] }
+                });
+            }
+
+            const reg = `${airline.code}-L${Math.floor(Math.random()*89 + 10)}`;
+            const num = `${airline.code}${flightId}`;
+            const id = getFlightId(reg, num, dateStr);
+            const lastEntry = history[history.length - 1];
+
+            flightDatabase[id] = {
+                info: {
+                    registration: reg,
+                    flightNum: num,
+                    airlineCode: airline.code,
+                    aircraftType: acType,
+                    date: dateStr,
+                    dep: route.dep,
+                    arr: route.arr
+                },
+                state: 'LANDED',
+                currentSat: { name: lastEntry.satInfo.name, beam: lastEntry.satInfo.beam },
+                status: status,
+                history: history
+            };
+            updateFiltersOptions(flightDatabase[id].info);
+        }
+
+        function generateMockSNMP() {
+            activeMockFlights.forEach((flt, index) => {
+                if (flt.isLanded) return;
+
+                const dLat = flt.destLat - flt.lat;
+                const dLon = flt.destLon - flt.lon;
+                const distSq = dLat * dLat + dLon * dLon; 
+
+                if (distSq < 0.05) { 
+                    flt.isLanded = true;
+                    const s = getRandomStatus();
+                    processSNMPQuery({
+                        timestamp: new Date().toISOString(),
+                        registration: flt.reg,
+                        flightNum: flt.num,
+                        flightDate: flt.date,
+                        airlineCode: flt.airlineCode,
+                        aircraftType: flt.aircraftType,
+                        dep: flt.dep,
+                        arr: flt.arr,
+                        gps: { lat: flt.destLat, lon: flt.destLon },
+                        discreteName: 'PAX connectivity',
+                        discreteValue: 'Working',
+                        fullStatusSnapshot: s,
+                        satName: satellites[flt.satIndex].name,
+                        beamId: satellites[flt.satIndex].beams[flt.beamIndex]
+                    }, true);
+                    
+                    activeMockFlights.splice(index, 1);
+                    createNewMockFlight(false); 
+                    return;
+                }
+
+                const speedFactor = 35; 
+                flt.lat += flt.stepLat * speedFactor;
+                flt.lon += flt.stepLon * speedFactor;
+                flt.tickCounter++;
+
+                // Changement périodique de faisceau ou de satellite en cours de vol
+                if (flt.tickCounter % 12 === 0) { 
+                    flt.beamIndex++;
+                    if (flt.beamIndex >= satellites[flt.satIndex].beams.length) {
+                        flt.satIndex = (flt.satIndex + 1) % satellites.length;
+                        flt.beamIndex = 0;
+                    }
+                }
+                
+                const randomDiscrete = discretesList[Math.floor(Math.random() * discretesList.length)];
+                const randomStatus = Math.random() > 0.85
+                    ? possibleStatuses[Math.floor(Math.random() * possibleStatuses.length)]
+                    : 'Working';
+                const currentSatObj = satellites[flt.satIndex];
+
+                processSNMPQuery({
+                    timestamp: new Date().toISOString(),
+                    registration: flt.reg,
+                    flightNum: flt.num,
+                    flightDate: flt.date,
+                    airlineCode: flt.airlineCode,
+                    aircraftType: flt.aircraftType,
+                    dep: flt.dep,
+                    arr: flt.arr,
+                    gps: { lat: flt.lat, lon: flt.lon },
+                    discreteName: randomDiscrete,
+                    discreteValue: randomStatus,
+                    satName: currentSatObj.name,
+                    beamId: currentSatObj.beams[flt.beamIndex]
+                });
+            });
+        }
+
+        // ============================================================================
+        // 11. DÉMARRAGE DE L'APPLICATION
+        // ============================================================================
+        window.onload = () => {
+            initMap();
+            document.getElementById('filterDate').valueAsDate = new Date();
+            
+            for (let i = 0; i < 8; i++) generateLandedFlight(0);
+            for (let i = 0; i < 12; i++) createNewMockFlight(true); 
+
+            applyFilters();
+
+            // Sélectionner automatiquement le premier vol LIVE au chargement
+            const liveIds = Object.keys(flightDatabase).filter(id => flightDatabase[id].state === 'LIVE');
+            if (liveIds.length > 0) {
+                selectFlight(liveIds[0]);
+            }
+
+            setInterval(generateMockSNMP, 1500);
+        };
+    </script>
+</body>
+</html>
+```
